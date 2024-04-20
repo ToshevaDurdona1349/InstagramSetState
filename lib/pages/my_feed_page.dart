@@ -1,6 +1,9 @@
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import '../model/post_model.dart';
+import '../services/db_service.dart';
+import '../services/utils_service.dart';
 
 class MyFeedPage extends StatefulWidget {
   final PageController? pageController;
@@ -20,7 +23,7 @@ class _MyFeedPageState extends State<MyFeedPage> {
       isLoading = true;
     });
 
-    //await DBService.likePost(post, true);
+    await DBService.likePost(post, true);
     setState(() {
       isLoading = false;
       post.liked = true;
@@ -32,26 +35,45 @@ class _MyFeedPageState extends State<MyFeedPage> {
       isLoading = true;
     });
 
-    //await DBService.likePost(post, false);
+    await DBService.likePost(post, false);
     setState(() {
       isLoading = false;
       post.liked = false;
     });
   }
 
+  _apiLoadFeeds() {
+    setState(() {
+      isLoading = true;
+    });
+    DBService.loadFeeds().then((value) => {
+      _resLoadFeeds(value),
+    });
+  }
+
+  _resLoadFeeds(List<Post> posts) {
+    setState(() {
+      items = posts;
+      isLoading = false;
+    });
+  }
+  _dialogRemovePost(Post post) async {
+    var result = await Utils.dialogCommon(context, "Instagram", "Do you want to detele this post?", false);
+
+    if (result) {
+      setState(() {
+        isLoading = true;
+      });
+      DBService.removePost(post).then((value) => {
+        _apiLoadFeeds(),
+      });
+    }
+  }
+
   @override
   void initState() {
     super.initState();
-    var post = Post("NextGen Academy","https://images.unsplash.com/photo-1712312938983-676e2cdbb9d6?q=80&w=2940&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D");
-    post.fullname = "Tosheva Durdona";
-    post.caption = "Lets try this kind of photo in Seoul!";
-    post.date = "2024-04-08";
-    post.mine = true;
-
-    items.add(post);
-    items.add(post);
-    items.add(post);
-    items.add(post);
+    _apiLoadFeeds();
   }
 
   @override
@@ -69,7 +91,8 @@ class _MyFeedPageState extends State<MyFeedPage> {
         actions: [
           IconButton(
             onPressed: () {
-              widget.pageController!.animateToPage(2, duration: Duration(microseconds: 200), curve: Curves.easeIn);
+              widget.pageController!.animateToPage(2,
+                  duration: Duration(microseconds: 200), curve: Curves.easeIn);
             },
             icon: Icon(Icons.camera_alt),
             color: Color.fromRGBO(193, 53, 132, 1),
@@ -150,7 +173,7 @@ class _MyFeedPageState extends State<MyFeedPage> {
                     ? IconButton(
                   icon: const Icon(Icons.more_horiz),
                   onPressed: () {
-
+                    _dialogRemovePost(post);
                   },
                 )
                     : const SizedBox.shrink(),
@@ -161,14 +184,17 @@ class _MyFeedPageState extends State<MyFeedPage> {
           const SizedBox(
             height: 8,
           ),
-          CachedNetworkImage(
-            width: MediaQuery.of(context).size.width,
-            imageUrl: post.img_post,
-            placeholder: (context, url) => const Center(
-              child: CircularProgressIndicator(),
+          GestureDetector(
+            // onTap: _apiPostLike(post) ,
+            child: CachedNetworkImage(
+              width: MediaQuery.of(context).size.width,
+              imageUrl: post.img_post,
+              placeholder: (context, url) => const Center(
+                child: CircularProgressIndicator(),
+              ),
+              errorWidget: (context, url, error) => const Icon(Icons.error),
+              fit: BoxFit.cover,
             ),
-            errorWidget: (context, url, error) => const Icon(Icons.error),
-            fit: BoxFit.cover,
           ),
 
           //#like share

@@ -1,5 +1,8 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import '../model/member_model.dart';
+import '../services/db_service.dart';
+import '../services/http_service.dart';
 
 class MySearchPage extends StatefulWidget {
   const MySearchPage({Key? key}) : super(key: key);
@@ -13,39 +16,58 @@ class _MySearchPageState extends State<MySearchPage> {
   var searchController = TextEditingController();
   List<Member> items = [];
 
-
   void _apiFollowMember(Member someone) async {
     setState(() {
+
       isLoading = true;
     });
-    //await DBService.followMember(someone);
+    await DBService.followMember(someone);
     setState(() {
       someone.followed = true;
       isLoading = false;
     });
-    //DBService.storePostsToMyFeed(someone);
+    DBService.storePostsToMyFeed(someone);
+    sendNotificationToFollowedMember(someone);
+  }
+
+  void sendNotificationToFollowedMember( Member someone) async{
+    Member me= await DBService.loadMember();
+    await Network.POST(Network.API_SEND_NOTIF,Network.paramsNotify(me,someone));
   }
 
   void _apiUnFollowMember(Member someone) async {
     setState(() {
       isLoading = true;
     });
-    //await DBService.unfollowMember(someone);
+    await DBService.unfollowMember(someone);
     setState(() {
       someone.followed = false;
       isLoading = false;
     });
-    //DBService.removePostsFromMyFeed(someone);
+    DBService.removePostsFromMyFeed(someone);
+  }
+
+  void _apiSearchMembers(String keyword) {
+    setState(() {
+      isLoading = true;
+    });
+    DBService.searchMembers(keyword).then((users) => {
+      debugPrint(users.length.toString()),
+      _resSearchMembers(users),
+    });
+  }
+
+  _resSearchMembers(List<Member> members){
+    setState(() {
+      items = members;
+      isLoading = false;
+    });
   }
 
   @override
   void initState() {
     super.initState();
-    var member = Member("ToshevaDurdona", "Durdona.com@gmail.com");
-    items.add(member);
-    items.add(member);
-    items.add(member);
-    items.add(member);
+    _apiSearchMembers("");
   }
 
   @override
@@ -64,13 +86,13 @@ class _MySearchPageState extends State<MySearchPage> {
         body: Stack(
           children: [
             Container(
-              padding: EdgeInsets.only(left: 20, right: 20),
+              padding: const EdgeInsets.only(left: 20, right: 20),
               child: Column(
                 children: [
                   //#search member
                   Container(
-                    margin: EdgeInsets.only(bottom: 10),
-                    padding: EdgeInsets.only(left: 10, right: 10),
+                    margin: const EdgeInsets.only(bottom: 10),
+                    padding: const EdgeInsets.only(left: 10, right: 10),
                     height: 45,
                     decoration: BoxDecoration(
                         color: Colors.grey.withOpacity(0.2),
@@ -140,49 +162,51 @@ class _MySearchPageState extends State<MySearchPage> {
           const SizedBox(
             width: 15,
           ),
-          Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                member.fullname,
-                style: const TextStyle(fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(
-                height: 3,
-              ),
-              Text(
-                member.email,
-                style: TextStyle(color: Colors.black54),
-              ),
-            ],
-          ),
           Expanded(
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.end,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                GestureDetector(
-                  onTap: () {
-                    if (member.followed) {
-                      _apiUnFollowMember(member);
-                    } else {
-                      _apiFollowMember(member);
-                    }
-                  },
-                  child: Container(
-                    width: 100,
-                    height: 30,
-                    decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(3),
-                        border: Border.all(width: 1, color: Colors.grey)),
-                    child: Center(
-                      child:
-                      member.followed ? const Text("Following") : const Text("Follow"),
-                    ),
-                  ),
+                Text(
+                  member.fullname,
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(
+                  height: 3,
+                ),
+                Text(
+                  overflow: TextOverflow.ellipsis,
+                  member.email,
+                  style: TextStyle(color: Colors.black54,fontSize: 14),
                 ),
               ],
             ),
+          ),
+          SizedBox(width: 7,),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              GestureDetector(
+                onTap: () {
+                  if (member.followed) {
+                    _apiUnFollowMember(member);
+                  } else {
+                    _apiFollowMember(member);
+                  }
+                },
+                child: Container(
+                  width: 100,
+                  height: 30,
+                  decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(3),
+                      border: Border.all(width: 1, color: Colors.grey)),
+                  child: Center(
+                    child:
+                    member.followed ? const Text("Following") : const Text("Follow"),
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),

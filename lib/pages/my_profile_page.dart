@@ -2,8 +2,12 @@ import 'dart:io';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:ngdemo17/pages/signin_page.dart';
 import '../model/member_model.dart';
 import '../model/post_model.dart';
+import '../services/auth_service.dart';
+import '../services/db_service.dart';
+import '../services/file_service.dart';
 import '../services/utils_service.dart';
 
 class MyProfilePage extends StatefulWidget {
@@ -29,7 +33,7 @@ class _MyProfilePageState extends State<MyProfilePage> {
     setState(() {
       _image = File(image.path);
     });
-    //_apiChangePhoto();
+    _apiChangePhoto();
   }
 
   _imgFromCamera() async {
@@ -39,7 +43,24 @@ class _MyProfilePageState extends State<MyProfilePage> {
     setState(() {
       _image = File(image.path);
     });
-    //_apiChangePhoto();
+    _apiChangePhoto();
+  }
+
+  _apiChangePhoto() {
+    if (_image == null) return;
+    setState(() {
+      isLoading = true;
+    });
+    FileService.uploadUserImage(_image!).then((downloadUrl) => {
+      _apiUpdateMember(downloadUrl),
+    });
+  }
+
+  _apiUpdateMember(String downloadUrl) async {
+    Member member = await DBService.loadMember();
+    member.img_url = downloadUrl;
+    await DBService.updateMember(member);
+    _apiLoadMember();
   }
 
   _showPicker(context) {
@@ -70,38 +91,73 @@ class _MyProfilePageState extends State<MyProfilePage> {
         });
   }
 
-  _dialogRemovePost(Post post) async{
+  _dialogRemovePost(Post post) async {
     var result = await Utils.dialogCommon(context, "Instagram", "Do you want to detele this post?", false);
-    if(result != null && result){
+    if (result) {
       setState(() {
         isLoading = true;
+      });
+      DBService.removePost(post).then((value) => {
+        _apiLoadPosts(),
       });
     }
   }
 
-  _dialogLogout() async{
-    var result = await Utils.dialogCommon(context, "Instagram", "Do you want to logout?", false);
-    if(result){
+  _dialogLogout() async {
+    var result = await Utils.dialogCommon(
+        context, "Instagram", "Do you want to logout?", false);
+    if (result) {
       setState(() {
         isLoading = true;
       });
+      _signOutUser();
     }
+  }
+
+  _signOutUser() {
+    AuthService.signOutUser(context);
+    Navigator.pushReplacementNamed(context, SignInPage.id);
+  }
+
+  void _apiLoadMember() {
+    setState(() {
+      isLoading = true;
+    });
+    DBService.loadMember().then((value) => {
+      _showMemberInfo(value),
+    });
+  }
+
+  void _showMemberInfo(Member member) {
+    setState(() {
+      isLoading = false;
+      fullname = member.fullname;
+      email = member.email;
+      img_url = member.img_url;
+      count_following = member.following_count;
+      count_followers = member.followers_count;
+    });
+  }
+
+  _apiLoadPosts() {
+    DBService.loadPosts().then((value) => {
+      _resLoadPosts(value),
+    });
+  }
+
+  _resLoadPosts(List<Post> posts) {
+    setState(() {
+      isLoading = false;
+      items = posts;
+      count_posts = posts.length;
+    });
   }
 
   @override
   void initState() {
     super.initState();
-    var member = Member("Tosheva Durdona", "TDurdona1349.com@gmail.com");
-    member.img_url = "https://images.unsplash.com/photo-1712312938983-676e2cdbb9d6?q=80&w=2940&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D";
-    fullname = member.fullname;
-    email = member.email;
-    img_url = member.img_url;
-
-    var post = Post("NextGen Academy","https://images.unsplash.com/photo-1712312938983-676e2cdbb9d6?q=80&w=2940&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D");
-    items.add(post);
-    items.add(post);
-    items.add(post);
-    items.add(post);
+    _apiLoadMember();
+    _apiLoadPosts();
   }
 
   @override
@@ -151,7 +207,7 @@ class _MyProfilePageState extends State<MyProfilePage> {
                             ),
                             child: ClipRRect(
                               borderRadius: BorderRadius.circular(35),
-                              child: _image == null
+                              child: img_url.isEmpty
                                   ? const Image(
                                 image: AssetImage(
                                     "assets/images/ic_person.png"),
@@ -159,8 +215,8 @@ class _MyProfilePageState extends State<MyProfilePage> {
                                 height: 70,
                                 fit: BoxFit.cover,
                               )
-                                  : Image.file(
-                                _image!,
+                                  : Image.network(
+                                img_url,
                                 width: 70,
                                 height: 70,
                                 fit: BoxFit.cover,
@@ -335,13 +391,17 @@ class _MyProfilePageState extends State<MyProfilePage> {
                 ],
               ),
             ),
+
+            isLoading? const Center(
+              child: CircularProgressIndicator(),
+            ): const SizedBox.shrink(),
           ],
         ));
   }
 
   Widget _itemOfPost(Post post) {
     return GestureDetector(
-        onLongPress: (){
+        onLongPress: () {
           _dialogRemovePost(post);
         },
         child: Container(
@@ -369,7 +429,6 @@ class _MyProfilePageState extends State<MyProfilePage> {
               )
             ],
           ),
-        )
-    );
+        ));
   }
 }

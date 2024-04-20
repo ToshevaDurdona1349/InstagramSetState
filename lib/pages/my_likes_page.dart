@@ -1,6 +1,8 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import '../model/post_model.dart';
+import '../services/db_service.dart';
+import '../services/utils_service.dart';
 
 class MyLikesPage extends StatefulWidget {
   const MyLikesPage({Key? key}) : super(key: key);
@@ -13,32 +15,46 @@ class _MyLikesPageState extends State<MyLikesPage> {
   bool isLoading = false;
   List<Post> items = [];
 
+  void _apiLoadLikes() {
+    setState(() {
+      isLoading = true;
+    });
+    DBService.loadLikes().then((value) => {
+      _resLoadPost(value),
+    });
+  }
+
+  void _resLoadPost(List<Post> posts) {
+    setState(() {
+      items = posts;
+      isLoading = false;
+    });
+  }
+
   void _apiPostUnLike(Post post) async {
     setState(() {
       isLoading = true;
     });
 
-    //await DBService.likePost(post, false);
-    setState(() {
-      isLoading = false;
-      post.liked = false;
-    });
+    await DBService.likePost(post, false);
+    _apiLoadLikes();
   }
+  _dialogRemovePost(Post post) async {
+    var result = await Utils.dialogCommon(context, "Instagram", "Do you want to detele this post?", false);
 
+    if (result) {
+      setState(() {
+        isLoading = true;
+      });
+      DBService.removePost(post).then((value) => {
+        _apiLoadLikes(),
+      });
+    }
+  }
   @override
   void initState() {
     super.initState();
-    var post = Post("NextGen Academy","https://images.unsplash.com/photo-1712312938983-676e2cdbb9d6?q=80&w=2940&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D");
-    post.fullname = "Tosheva Durdona";
-    post.caption = "Lets try this kind of photo in Seoul!";
-    post.date = "2024-04-08";
-    post.mine = true;
-    post.liked = true;
-
-    items.add(post);
-    items.add(post);
-    items.add(post);
-    items.add(post);
+    _apiLoadLikes();
   }
 
   @override
@@ -127,7 +143,7 @@ class _MyLikesPageState extends State<MyLikesPage> {
                     ? IconButton(
                   icon: const Icon(Icons.more_horiz),
                   onPressed: () {
-
+                    _dialogRemovePost(post);
                   },
                 )
                     : const SizedBox.shrink(),

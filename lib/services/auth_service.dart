@@ -1,10 +1,23 @@
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:ngdemo17/services/prefs_service.dart';
 
+import '../pages/signin_page.dart';
+
 class AuthService {
   static final _auth = FirebaseAuth.instance;
-//sayn in
+
+  static bool isLoggedIn() {
+    final User? firebaseUser = _auth.currentUser;
+    return firebaseUser != null;
+  }
+
+  static String currentUserId() {
+    final User? firebaseUser = _auth.currentUser;
+    return firebaseUser!.uid;
+  }
+
   static Future<User?> signInUser(
       BuildContext context, String email, String password) async {
     try {
@@ -17,7 +30,7 @@ class AuthService {
     }
     return null;
   }
-//sayn up
+
   static Future<User?> signUpUser(
       BuildContext context, String name, String email, String password) async {
     try {
@@ -32,8 +45,9 @@ class AuthService {
     return null;
   }
 
-  static void signOutUser(BuildContext context)async {
+  static void signOutUser(BuildContext context) async{
     _auth.signOut();
     await Prefs.removeUserId();
   }
+
 }
