@@ -18,7 +18,6 @@ class _MySearchPageState extends State<MySearchPage> {
 
   void _apiFollowMember(Member someone) async {
     setState(() {
-
       isLoading = true;
     });
     await DBService.followMember(someone);
@@ -30,9 +29,9 @@ class _MySearchPageState extends State<MySearchPage> {
     sendNotificationToFollowedMember(someone);
   }
 
-  void sendNotificationToFollowedMember( Member someone) async{
-    Member me= await DBService.loadMember();
-    await Network.POST(Network.API_SEND_NOTIF,Network.paramsNotify(me,someone));
+  void sendNotificationToFollowedMember(Member someone) async {
+    Member me = await DBService.loadMember();
+    await Network.POST(Network.API_SEND_NOTIF, Network.paramsNotify(me, someone));
   }
 
   void _apiUnFollowMember(Member someone) async {
@@ -52,12 +51,12 @@ class _MySearchPageState extends State<MySearchPage> {
       isLoading = true;
     });
     DBService.searchMembers(keyword).then((users) => {
-      debugPrint(users.length.toString()),
-      _resSearchMembers(users),
-    });
+          debugPrint(users.length.toString()),
+          _resSearchMembers(users),
+        });
   }
 
-  _resSearchMembers(List<Member> members){
+  _resSearchMembers(List<Member> members) {
     setState(() {
       items = members;
       isLoading = false;
@@ -104,7 +103,7 @@ class _MySearchPageState extends State<MySearchPage> {
                           hintText: "Search",
                           border: InputBorder.none,
                           hintStyle:
-                          TextStyle(fontSize: 15, color: Colors.grey),
+                              TextStyle(fontSize: 15, color: Colors.grey),
                           icon: Icon(
                             Icons.search,
                             color: Colors.grey,
@@ -146,17 +145,17 @@ class _MySearchPageState extends State<MySearchPage> {
               borderRadius: BorderRadius.circular(22.5),
               child: member.img_url.isEmpty
                   ? const Image(
-                image: AssetImage("assets/images/ic_person.png"),
-                width: 45,
-                height: 45,
-                fit: BoxFit.cover,
-              )
+                      image: AssetImage("assets/images/ic_person.png"),
+                      width: 45,
+                      height: 45,
+                      fit: BoxFit.cover,
+                    )
                   : Image.network(
-                member.img_url,
-                width: 45,
-                height: 45,
-                fit: BoxFit.cover,
-              ),
+                      member.img_url,
+                      width: 45,
+                      height: 45,
+                      fit: BoxFit.cover,
+                    ),
             ),
           ),
           const SizedBox(
@@ -177,12 +176,14 @@ class _MySearchPageState extends State<MySearchPage> {
                 Text(
                   overflow: TextOverflow.ellipsis,
                   member.email,
-                  style: TextStyle(color: Colors.black54,fontSize: 14),
+                  style: TextStyle(color: Colors.black54, fontSize: 14),
                 ),
               ],
             ),
           ),
-          SizedBox(width: 7,),
+          SizedBox(
+            width: 7,
+          ),
           Row(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
@@ -201,8 +202,9 @@ class _MySearchPageState extends State<MySearchPage> {
                       borderRadius: BorderRadius.circular(3),
                       border: Border.all(width: 1, color: Colors.grey)),
                   child: Center(
-                    child:
-                    member.followed ? const Text("Following") : const Text("Follow"),
+                    child: member.followed
+                        ? const Text("Following")
+                        : const Text("Follow"),
                   ),
                 ),
               ),
